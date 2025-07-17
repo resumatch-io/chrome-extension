@@ -1,9 +1,9 @@
 {
   "name": "resumatch-extension",
-  "displayName": "Resumatch extension",
+  "displayName": "Resumatch.io extension",
   "version": "0.0.1",
-  "description": "a resumatch",
-  "author": "sai karthik",
+  "description": "An AI-powered platform for building, tailoring, and optimizing resumes and preparing for job interviews.",
+  "author": "Resumatch, inc",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
@@ -37,7 +37,6 @@
     "typescript": "5.3.3"
   },
   "manifest": {
-    "key": "$CRX_PUBLIC_KEY",
     "permissions": [
       "cookies",
       "storage",
