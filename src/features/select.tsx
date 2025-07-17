@@ -51,7 +51,8 @@ const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) =
 
   const handleSelectResume = () => {
     if (selectedResumeId && onResumeSelect) {
-      const resumeName = selectedResumeId === 'my-resume' ? 'My Resume' : `Resume ${selectedResumeId}`;
+      const selectedResume = collections?.find(item => item.id === selectedResumeId);
+      const resumeName = selectedResume ? selectedResume.name : 'Unknown Resume';
       onResumeSelect(resumeName);
     }
   };
@@ -203,7 +204,7 @@ const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) =
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {selectedResumeId ? 'Select Resume' : 'Choose a Resume'}
+          {selectedResumeId ? `Selected: ${collections?.find(item => item.id === selectedResumeId)?.name || 'Unknown Resume'}` : 'Choose a Resume'}
         </button>
       </div>
     </div>

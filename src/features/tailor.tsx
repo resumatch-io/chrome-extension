@@ -648,9 +648,9 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
                   Retry
                 </button>
               </div>
-            )}*/}
+            )}
           </div>
-        </div> 
+        </div>
 
         <div className="w-full mb-4">
           {!selectedResume && !uploadedFile && (
