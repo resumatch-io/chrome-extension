@@ -220,6 +220,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
     }
   };
 
+  /*
   const handleTakeScreenshot = async () => {
     // Reset state for a new capture
     setScreenshotPreview(null);
@@ -231,7 +232,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
 
     try {
       // Keep sidebar visible; overlay will cover interactions
-      if (onSidebarVisibilityChange) onSidebarVisibilityChange(false);
+      // if (onSidebarVisibilityChange) onSidebarVisibilityChange(false);
 
       // Create and setup the snipping tool overlay
       const existingHost = document.getElementById("snip-shadow-host");
@@ -291,7 +292,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
         host.remove();
         setIsCapturingScreenshot(false);
         // Keep sidebar visible
-        if (onSidebarVisibilityChange) onSidebarVisibilityChange(true);
+        // if (onSidebarVisibilityChange) onSidebarVisibilityChange(true);
       };
 
       return await new Promise((resolve) => {
@@ -433,6 +434,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
       if (onSidebarVisibilityChange) onSidebarVisibilityChange(true);
     }
   };
+*/
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     onFileDialogClose?.()
@@ -549,7 +551,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
           <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
             <label className="block text-xs font-medium text-gray-800 mb-2 flex items-center justify-between">
               <span>Job Description <span className="text-red-500">*</span></span>
-              {isCapturingScreenshot ? (
+              {/* {isCapturingScreenshot ? (
                 <div className="ml-2 flex items-center gap-2 px-3 py-1.5 border border-[#4747E1] bg-white text-[#4747E1] text-xs font-semibold rounded-lg">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Click and drag to select...</span>
@@ -578,16 +580,16 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  className="ml-2 flex items-center gap-1 px-3 py-1.5 border border-[#4747E1] bg-white text-[#4747E1] text-xs font-semibold rounded-lg shadow-sm hover:bg-[#f5f5ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleTakeScreenshot}
-                  disabled={isOcrLoading || isCapturingScreenshot}
-                >
-                  <Camera className="w-4 h-4" />
-                  <span>Screenshot</span>
-                </button>
-              )}
+                // <button
+                //   type="button"
+                //   className="ml-2 flex items-center gap-1 px-3 py-1.5 border border-[#4747E1] bg-white text-[#4747E1] text-xs font-semibold rounded-lg shadow-sm hover:bg-[#f5f5ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                //   onClick={handleTakeScreenshot}
+                //   disabled={isOcrLoading || isCapturingScreenshot}
+                // >
+                //   <Camera className="w-4 h-4" />
+                //   <span>Screenshot</span>
+                // </button>
+              )} */}
             </label>
             <textarea
               value={jobDescription}
@@ -646,9 +648,9 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
                   Retry
                 </button>
               </div>
-            )}
+            )}*/}
           </div>
-        </div>
+        </div> 
 
         <div className="w-full mb-4">
           {!selectedResume && !uploadedFile && (

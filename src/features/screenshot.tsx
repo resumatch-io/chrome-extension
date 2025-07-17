@@ -1,3 +1,4 @@
+/*
 import { useState, useEffect } from "react"
 
 interface ScreenshotProps {
@@ -232,7 +233,7 @@ export default function Screenshot({ onScreenshotCaptured, initialScreenshot, on
               console.log("[Screenshot] Custom screenshot failed", response);
             }
           });
-        }, 50); // Small delay to ensure overlay is completely removed from DOM
+        }, 50);
       });
       
     } catch (error) {
@@ -272,27 +273,28 @@ export default function Screenshot({ onScreenshotCaptured, initialScreenshot, on
         {isCapturing ? "Capturing..." : "Capture Screenshot"}
       </button>
 
-      {/* Custom Screenshot Button - now uses message system */}
-      <button
-        onClick={startCustomScreenshot}
-        disabled={isCapturing}
-        className={`mt-2 px-4 py-2 text-white rounded transition-colors ${
-          isCapturing
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-[#FF7A3A] hover:bg-[#cc632e]"
-        }`}
-      >
-        {isCapturing ? "Capturing..." : "Custom Screenshot (Snip)"}
-      </button>
+      Custom Screenshot Button - now uses message system 
+//       <button
+//         onClick={startCustomScreenshot}
+//         disabled={isCapturing}
+//         className={`mt-2 px-4 py-2 text-white rounded transition-colors ${
+//           isCapturing
+//             ? "bg-gray-400 cursor-not-allowed"
+//             : "bg-[#FF7A3A] hover:bg-[#cc632e]"
+//         }`}
+//       >
+//         {isCapturing ? "Capturing..." : "Custom Screenshot (Snip)"}
+//       </button>
 
-      {screenshot && (
-        <div className="mt-4 flex-1 flex flex-col min-h-0">
-          <h2 className="text-md font-semibold mb-2">Captured Screenshot:</h2>
-          <div className="flex-1 overflow-auto border rounded mb-4">
-            <img src={screenshot} alt="Screenshot" className="w-full h-auto" />
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
+//       {screenshot && (
+//         <div className="mt-4 flex-1 flex flex-col min-h-0">
+//           <h2 className="text-md font-semibold mb-2">Captured Screenshot:</h2>
+//           <div className="flex-1 overflow-auto border rounded mb-4">
+//             <img src={screenshot} alt="Screenshot" className="w-full h-auto" />
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   )
+// }
+// */
