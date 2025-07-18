@@ -5,13 +5,12 @@ import { Star, Edit2, Download, Trash2, FileText, Copy } from 'lucide-react';
 import { useUser } from '@clerk/chrome-extension';
 
 interface SelectResumePageProps {
-  onResumeSelect?: (resumeName: string) => void;
+  onResumeSelect?: (resumeName: string, parsedText?: string) => void;
 }
 
 const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) => {
   const { user } = useUser();
   const [search, setSearch] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [collections, setCollections] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +52,8 @@ const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) =
     if (selectedResumeId && onResumeSelect) {
       const selectedResume = collections?.find(item => item.id === selectedResumeId);
       const resumeName = selectedResume ? selectedResume.name : 'Unknown Resume';
-      onResumeSelect(resumeName);
+      const parsedText = selectedResume ? selectedResume.text : undefined;
+      onResumeSelect(resumeName, parsedText);
     }
   };
 

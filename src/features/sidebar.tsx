@@ -52,6 +52,9 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
   const { user } = useUser();
   const { signOut } = useClerk();
 
+  // Add state for selectedResumeParsedText
+  const [selectedResumeParsedText, setSelectedResumeParsedText] = useState<string | null>(null);
+
   useEffect(() => {
     if (forceVisible) {
       setIsVisible(true);
@@ -89,6 +92,7 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
       action: "tailorResume",
       visibleTo: "all"
     },
+    // Comment out screenshot-related nav item
     // {
     //   title: "Upload JD screenshot",
     //   description: "Upload a screenshot of the job description to tailor your resume.",
@@ -121,10 +125,16 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
     } else if (action === "collections") {
       setCurrentPage("collections");
     }
+    // Comment out screenshot page logic
+    // else if (action === "uploadScreenshot") {
+    //   setCurrentPage("screenshot");
+    // }
   };
 
-  const handleResumeSelection = (resumeName: string) => {
+  // Update handleResumeSelection to accept both name and parsedText
+  const handleResumeSelection = (resumeName: string, parsedText?: string) => {
     setSelectedResume(resumeName);
+    setSelectedResumeParsedText(parsedText || null);
     setCurrentPage("tailor");
   };
 
@@ -144,6 +154,7 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
     setShowResume(false);
     setShowLoading(false);
     setSelectedResume(null);
+    setSelectedResumeParsedText(null);
     setJobDescription('');
     setCurrentPage("main");
   };
@@ -226,8 +237,12 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
                     <TailorResumePage
                       onSelectFromCollections={() => setCurrentPage("select")}
                       selectedResume={selectedResume}
+                      selectedResumeParsedText={selectedResumeParsedText}
                       onTailorStart={handleTailorStart}
-                      onResumeRemove={() => setSelectedResume(null)}
+                      onResumeRemove={() => {
+                        setSelectedResume(null);
+                        setSelectedResumeParsedText(null);
+                      }}
                       jobDescriptionText={jobDescription}
                       onJobDescriptionChange={setJobDescription}
                       onFileDialogOpen={onFileDialogOpen}

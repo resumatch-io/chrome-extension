@@ -32,7 +32,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       chrome.tabs.sendMessage(tab.id, { action: info.menuItemId })
       break
     case "capture-screenshot":
-      // chrome.tabs.sendMessage(tab.id, { action: "startCustomScreenshot" });
+      chrome.tabs.sendMessage(tab.id, { action: "startCustomScreenshot" });
       break
     case "Tailor My Resume":
       // Always request the selected text from the content script
@@ -103,26 +103,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // async response
   }
 
-  // Custom region screenshot
-  // if (message.action === "captureRegionScreenshot" && message.rect) {
-  //   console.log('[Background] Received captureRegionScreenshot request with rect:', message.rect);
-  //   chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: "png" }, (image) => {
-  //     if (!image) {
-  //       console.error('[Background] Failed to capture screenshot');
-  //       sendResponse({ status: "error", error: "Failed to capture screenshot" });
-  //       return;
-  //     }
+  if (message.action === "captureRegionScreenshot" && message.rect) {
+    console.log('[Background] Received captureRegionScreenshot request with rect:', message.rect);
+    chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: "png" }, (image) => {
+      if (!image) {
+        console.error('[Background] Failed to capture screenshot');
+        sendResponse({ status: "error", error: "Failed to capture screenshot" });
+        return;
+      }
       
-  //     console.log('[Background] Screenshot captured successfully, sending back with rect');
-  //     // Send the full screenshot and rect back to content script for cropping
-  //     sendResponse({ 
-  //       status: "success", 
-  //       screenshot: image,
-  //       rect: message.rect
-  //     });
-  //   });
-  //   return true;
-  // }
+      console.log('[Background] Screenshot captured successfully, sending back with rect');
+      // Send the full screenshot and rect back to content script for cropping
+      sendResponse({ 
+        status: "success", 
+        screenshot: image,
+        rect: message.rect
+      });
+    });
+    return true;
+  }
 
   // Full screenshot capture
   // if (message.action === "captureScreenshot") {
