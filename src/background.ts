@@ -1,5 +1,7 @@
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist/build/pdf";
 
+const pdfjsLib = { GlobalWorkerOptions, getDocument };
+
 chrome.runtime.onInstalled.addListener(() => {
   const menuItems = [
     { id: "save-job", title: "Save Job" },
@@ -35,7 +37,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       chrome.tabs.sendMessage(tab.id, { action: "startCustomScreenshot" });
       break
     case "Tailor My Resume":
-      // Always request the selected text from the content script
       chrome.tabs.sendMessage(tab.id, { action: "getSelectedText" }, (response) => {
         const jobDescription = response?.selectedText || "";
         chrome.tabs.sendMessage(tab.id, {
@@ -48,12 +49,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 })
 
-// Set the workerSrc for pdfjs-dist
-GlobalWorkerOptions.workerSrc = chrome.runtime.getURL("pdf.worker.min.js")
+const pdfjsWorkerSrc = chrome.runtime.getURL("pdf.worker.min.js");
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerSrc;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Unified resume generation and saving
-  if (message.action === "GENERATE_AND_SAVE_RESUME") {
+  if (message.action === "GENERATE_RESUME") {
     const body = {
       parsedText: message.parsedText || "",
       jobDescription: message.jobDescription || "",
@@ -75,46 +75,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
-  // PDF parsing in background
-  if (message.action === "PARSE_PDF" && message.pdfData) {
-    (async () => {
-      try {
-        // Accepts base64 or ArrayBuffer
-        let data;
-        if (typeof message.pdfData === "string") {
-          // base64 string
-          data = Uint8Array.from(atob(message.pdfData), c => c.charCodeAt(0));
-        } else {
-          // ArrayBuffer
-          data = new Uint8Array(message.pdfData);
+    if (message.action === "PARSE_PDF") {
+    try {
+      let uint8Array;
+      if (typeof message.pdfData === "string") {
+        const binaryString = atob(message.pdfData.split(",")[1]);
+        uint8Array = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          uint8Array[i] = binaryString.charCodeAt(i);
         }
-        const pdf = await getDocument({ data }).promise;
-        let text = "";
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          text += content.items.map(item => item.str).join(" ") + "\n";
-        }
-        sendResponse({ success: true, text });
-      } catch (err) {
-        sendResponse({ success: false, error: err.message });
+      } else {
+        uint8Array = new Uint8Array(message.pdfData);
       }
-    })();
-    return true; // async response
+      
+      // Add proper handling for the PDF data
+      sendResponse({ success: true, message: "PDF data processed" });
+    } catch (error) {
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
   }
 
-  // Custom region screenshot
   if (message.action === "captureRegionScreenshot" && message.rect) {
-    console.log('[Background] Received captureRegionScreenshot request with rect:', message.rect);
     chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: "png" }, (image) => {
       if (!image) {
-        console.error('[Background] Failed to capture screenshot');
         sendResponse({ status: "error", error: "Failed to capture screenshot" });
         return;
       }
       
-      console.log('[Background] Screenshot captured successfully, sending back with rect');
-      // Send the full screenshot and rect back to content script for cropping
       sendResponse({ 
         status: "success", 
         screenshot: image,
@@ -124,9 +112,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // Full screenshot capture
   if (message.action === "captureScreenshot") {
-    // Try to get the sender's tab/window
     let windowId = sender.tab ? sender.tab.windowId : undefined;
     chrome.tabs.captureVisibleTab(windowId, { format: "png" }, (image) => {
       if (!image) {
@@ -153,10 +139,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ status: "error", message: "No active tab found." });
       }
     });
-    return true; // keep channel open for async response
+    return true;
   }
 
-  // Resume generator
   if (message.action === "GENERATE_RESUME") {
     const body = {
       parsedText: message.parsedText || "",
@@ -177,7 +162,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true
   }
 
-  // Save Resume 
   if (message.action === "SAVE_RESUME") {
     const body = {
       parsedText: message.parsedText ,
@@ -202,7 +186,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true 
   }
 
-  // Fetch Collections
   if (message.action === "FETCH_COLLECTIONS") {
     const body = {
       email: message.email
@@ -215,17 +198,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       body: JSON.stringify(body)
     })
       .then(res => {
-        console.log("Collections API response status:", res.status);
-        console.log("Collections API response headers:", res.headers);
-        
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
         
-        // Check if response has content
         return res.text().then(text => {
-          console.log("Collections API raw response:", text);
-          
           if (!text || text.trim() === '') {
             throw new Error("Empty response from server");
           }
@@ -233,7 +210,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           try {
             return JSON.parse(text);
           } catch (e) {
-            console.error("Failed to parse JSON:", e);
             throw new Error(`Invalid JSON response: ${text.substring(0, 100)}...`);
           }
         });

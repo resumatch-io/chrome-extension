@@ -44,7 +44,6 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
   const [isVisible, setIsVisible] = useState(forceVisible);
   const [currentPage, setCurrentPage] = useState("main");
   const [selectedResume, setSelectedResume] = useState<string | null>(null);
-  const [selectedResumeParsedText, setSelectedResumeParsedText] = useState<string | null>(null);
   const [showLoading, setShowLoading] = useState(false);
   const [showResume, setShowResume] = useState(false);
   const [jobDescription, setJobDescription] = useState(initialJobDescription || '');
@@ -65,7 +64,7 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
   }, [forceVisible, initialPage, initialCapturedScreenshot]);
 
   useEffect(() => {
-    if (initialJobDescription !== undefined && initialJobDescription !== jobDescription) {
+    if (initialJobDescription !== undefined) {
       setJobDescription(initialJobDescription);
       setIsVisible(true);
       if (initialPage) setCurrentPage(initialPage);
@@ -126,9 +125,8 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
     }
   };
 
-  const handleResumeSelection = (resumeName: string, resumeText: string) => {
+  const handleResumeSelection = (resumeName: string) => {
     setSelectedResume(resumeName);
-    setSelectedResumeParsedText(resumeText);
     setCurrentPage("tailor");
   };
 
@@ -148,7 +146,6 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
     setShowResume(false);
     setShowLoading(false);
     setSelectedResume(null);
-    setSelectedResumeParsedText(null);
     setJobDescription('');
     setCurrentPage("main");
   };
@@ -235,22 +232,14 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
                     <TailorResumePage
                       onSelectFromCollections={() => setCurrentPage("select")}
                       selectedResume={selectedResume}
-                      selectedResumeParsedText={selectedResumeParsedText}
                       onTailorStart={handleTailorStart}
-                      onResumeRemove={() => {
-                        setSelectedResume(null);
-                        setSelectedResumeParsedText(null);
-                      }}
+                      onResumeRemove={() => setSelectedResume(null)}
                       jobDescriptionText={jobDescription}
                       onJobDescriptionChange={setJobDescription}
                       onFileDialogOpen={onFileDialogOpen}
                       onFileDialogClose={onFileDialogClose}
-                      onSidebarVisibilityChange={(visible, data) => {
+                      onSidebarVisibilityChange={(visible) => {
                         setIsVisible(visible);
-                        if (data?.capturedScreenshot) {
-                          setCapturedScreenshot(data.capturedScreenshot);
-                          setCurrentPage("screenshot");
-                        }
                         if (onClose && !visible) onClose();
                       }}
                     />
@@ -308,7 +297,7 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
                     <div className="space-y-4">
                       <SignedOut>
                         <div className="flex flex-col items-center justify-center py-6 space-y-4 rounded-2xl bg-white shadow-sm">
-                          <SignInButton mode="redirect">
+                          <SignInButton mode="modal">
                             <button className="flex items-center justify-center w-full max-w-xs border border-[#e0cffe] rounded-full py-3 px-5 bg-white text-gray-800 font-semibold text-sm shadow-sm hover:shadow-md transition-all">
                               <img
                                 src={GoogleLogo}

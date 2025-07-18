@@ -5,7 +5,7 @@ import { Star, Edit2, Download, Trash2, FileText, Copy } from 'lucide-react';
 import { useUser } from '@clerk/chrome-extension';
 
 interface SelectResumePageProps {
-  onResumeSelect?: (resumeName: string, resumeText: string) => void;
+  onResumeSelect?: (resumeName: string) => void;
 }
 
 const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) => {
@@ -53,8 +53,7 @@ const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) =
     if (selectedResumeId && onResumeSelect) {
       const selectedResume = collections?.find(item => item.id === selectedResumeId);
       const resumeName = selectedResume ? selectedResume.name : 'Unknown Resume';
-      const resumeText = selectedResume ? selectedResume.text : '';
-      onResumeSelect(resumeName, resumeText);
+      onResumeSelect(resumeName);
     }
   };
 
