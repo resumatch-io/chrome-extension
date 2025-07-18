@@ -15,8 +15,7 @@ interface ParseResult {
 interface TailorResumePageProps {
   onSelectFromCollections?: () => void
   selectedResume?: string | null
-
-  selectedResumeParsedText?: string | null
+  selectedResumeParsedText?: string | null // <-- add this prop
   onTailorStart?: (shareableLink: string) => void
   onResumeRemove?: () => void
   jobDescriptionText?: string
@@ -45,7 +44,7 @@ interface ScreenshotResponse {
 const TailorResumePage: React.FC<TailorResumePageProps> = ({
   onSelectFromCollections,
   selectedResume,
-  selectedResumeParsedText,
+  selectedResumeParsedText, // <-- use this prop
   onTailorStart,
   onResumeRemove,
   jobDescriptionText = '',
@@ -222,8 +221,6 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
     }
   };
 
-  // Comment out the screenshot button and related UI
-  /*
   const handleTakeScreenshot = async () => {
     // Reset state for a new capture
     setScreenshotPreview(null);
@@ -252,51 +249,191 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
         zIndex: "2147483647",
         pointerEvents: "auto"
       });
-      document.body.appendChild(host);
 
       const shadow = host.attachShadow({ mode: "open" });
-      // Add overlay style
+      
       const style = document.createElement("style");
       style.textContent = `
-        :host {
-          display: block;
+        .snip-overlay {
           position: fixed;
           top: 0;
           left: 0;
           width: 100vw;
           height: 100vh;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 2147483647;
-          pointer-events: auto;
+          background: rgba(0,0,0,0.2);
+          cursor: crosshair;
+          user-select: none;
+        }
+        .snip-selection {
+          position: fixed;
+          border: 2px dashed #4747E1;
+          background: rgba(74,58,255,0.15);
+          pointer-events: none;
+          display: none;
         }
       `;
+      
+      const overlay = document.createElement("div");
+      overlay.className = "snip-overlay";
+      
+      const selection = document.createElement("div");
+      selection.className = "snip-selection";
+
       shadow.appendChild(style);
+      shadow.appendChild(overlay);
+      shadow.appendChild(selection);
+      document.body.appendChild(host);
 
-      // Add snipping tool UI
-      const snipTool = document.createElement("div");
-      snipTool.textContent = "Snip Tool Active";
-      snipTool.style.position = "absolute";
-      snipTool.style.top = "50%";
-      snipTool.style.left = "50%";
-      snipTool.style.transform = "translate(-50%, -50%)";
-      snipTool.style.color = "white";
-      snipTool.style.fontSize = "24px";
-      shadow.appendChild(snipTool);
+      let startX = 0;
+      let startY = 0;
+      let isSelecting = false;
 
-      // Simulate screenshot capture
-      setTimeout(() => {
-        const fakeScreenshot = "data:image/png;base64,fakeScreenshotData";
-        setScreenshotPreview(fakeScreenshot);
+      const cleanup = () => {
+        host.remove();
         setIsCapturingScreenshot(false);
-        console.log('[Tailor] Screenshot capture completed');
-        if (onSidebarVisibilityChange) onSidebarVisibilityChange(true, { capturedScreenshot: fakeScreenshot });
-      }, 2000);
+        // Keep sidebar visible
+        if (onSidebarVisibilityChange) onSidebarVisibilityChange(true);
+      };
+
+      return await new Promise((resolve) => {
+        const handleMouseDown = (e: MouseEvent) => {
+          isSelecting = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          selection.style.display = "block";
+          selection.style.left = `${startX}px`;
+          selection.style.top = `${startY}px`;
+          selection.style.width = "0";
+          selection.style.height = "0";
+          console.log('[Tailor] Snip selection started');
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+          if (!isSelecting) return;
+
+          const currentX = e.clientX;
+          const currentY = e.clientY;
+          const width = Math.abs(currentX - startX);
+          const height = Math.abs(currentY - startY);
+          const left = Math.min(startX, currentX);
+          const top = Math.min(startY, currentY);
+
+          selection.style.left = `${left}px`;
+          selection.style.top = `${top}px`;
+          selection.style.width = `${width}px`;
+          selection.style.height = `${height}px`;
+        };
+
+        const handleMouseUp = async (e: MouseEvent) => {
+          if (!isSelecting) return;
+          isSelecting = false;
+
+          const endX = e.clientX;
+          const endY = e.clientY;
+          
+          // Calculate rect relative to viewport (no DPR scaling yet)
+          const viewportRect = {
+            x: Math.min(startX, endX) + window.scrollX,
+            y: Math.min(startY, endY) + window.scrollY,
+            width: Math.abs(endX - startX),
+            height: Math.abs(endY - startY)
+          };
+          
+          // Apply DPR scaling to match screenshot coordinates
+          const dpr = window.devicePixelRatio || 1;
+          const rect = {
+            x: Math.round(viewportRect.x * dpr),
+            y: Math.round(viewportRect.y * dpr),
+            width: Math.round(viewportRect.width * dpr),
+            height: Math.round(viewportRect.height * dpr)
+          };
+
+          // Remove listeners
+          overlay.removeEventListener('mousedown', handleMouseDown);
+          overlay.removeEventListener('mousemove', handleMouseMove);
+          overlay.removeEventListener('mouseup', handleMouseUp);
+          
+          cleanup();
+
+          if (viewportRect.width < 5 || viewportRect.height < 5) {
+            console.warn('[Tailor] Snip selection too small, cancelled');
+            resolve(null);
+            return;
+          }
+
+          // Show processing state
+          setIsOcrLoading(true);
+
+          try {
+            console.log('[Tailor] Sending screenshot capture request with rect:', rect);
+            console.log('[Tailor] Viewport rect (before DPR):', viewportRect);
+            console.log('[Tailor] Device pixel ratio:', dpr);
+            
+            // Capture the screenshot and crop the selected region
+            chrome.runtime.sendMessage(
+              { action: "captureRegionScreenshot", rect },
+              async (response: ScreenshotResponse) => {
+                console.log('[Tailor] Received response from background:', response);
+                
+                if (response?.status === "success" && response.screenshot) {
+                  console.log('[Tailor] Screenshot captured successfully');
+                  
+                  try {
+                    // Crop the image if we have rect info, otherwise use as-is
+                    let finalImage = response.screenshot;
+                    if (response.rect) {
+                      console.log('[Tailor] Cropping image with rect:', response.rect);
+                      finalImage = await cropImage(response.screenshot, response.rect);
+                      console.log('[Tailor] Image cropped successfully');
+                    } else {
+                      console.log('[Tailor] No rect provided, using full screenshot');
+                    }
+                    
+                    setScreenshotPreview(finalImage);
+                    setLastOcrImage(finalImage);
+                    
+                    // Process the cropped image with OCR
+                    console.log('[Tailor] Starting OCR processing');
+                    const ocrResult = await processOcrImage(finalImage);
+                    console.log('[Tailor] OCR processing completed:', ocrResult);
+                    resolve(ocrResult);
+                  } catch (cropError) {
+                    console.error('[Tailor] Image cropping failed:', cropError);
+                    setOcrError('Failed to process screenshot');
+                    setIsOcrLoading(false);
+                    resolve(null);
+                  }
+                } else {
+                  console.error('[Tailor] Screenshot capture failed:', response);
+                  setOcrError(response?.error || "Failed to capture screenshot");
+                  setIsOcrLoading(false);
+                  resolve(null);
+                }
+              }
+            );
+          } catch (error) {
+            console.error("[Tailor] Screenshot capture failed:", error);
+            setOcrError(error instanceof Error ? error.message : "Failed to process screenshot");
+            setScreenshotPreview(null);
+            setIsOcrLoading(false);
+            resolve(null);
+          }
+        };
+
+        // Add listeners
+        overlay.addEventListener('mousedown', handleMouseDown);
+        overlay.addEventListener('mousemove', handleMouseMove);
+        overlay.addEventListener('mouseup', handleMouseUp);
+      });
     } catch (error) {
-      console.error('[Tailor] Screenshot capture failed', error);
+      console.error("[Tailor] Error during screenshot capture:", error);
+      setOcrError(error instanceof Error ? error.message : 'Screenshot capture failed');
+      setScreenshotPreview(null);
       setIsCapturingScreenshot(false);
+      setIsOcrLoading(false);
+      if (onSidebarVisibilityChange) onSidebarVisibilityChange(true);
     }
   };
-  */
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     onFileDialogClose?.()
@@ -361,14 +498,13 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
   const handleTailorResume = async () => {
     // Use parsedText from collection if selected, else from upload
     let parsedTextToUse = selectedResumeParsedText || parsedText;
-
     
     // If we have selectedResumeParsedText, it's a stringified JSON from the API
     // We need to parse it to an object for the GENERATE_RESUME request
     if (selectedResumeParsedText) {
       try {
         // Parse the stringified JSON to an object
-        parsedTextToUse = JSON.parse(selectedResumeParsedText);
+        parsedTextToUse = JSON.stringify(selectedResumeParsedText);
         console.log('[Tailor] Parsed collection resume data to object:', parsedTextToUse);
       } catch (error) {
         console.error('[Tailor] Error parsing selectedResumeParsedText:', error);
@@ -379,12 +515,12 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
     
     console.log('[Tailor] handleTailorResume called');
     if (selectedResumeParsedText) {
-      console.log('[Tailor] Using parsedText from collection (processed):', typeof parsedTextToUse, parsedTextToUse);
+      console.log('[Tailor] Using parsedText from collection (processed):', typeof parsedTextToUse);
+      console.log('[Tailor] Collection data preview:', JSON.stringify(parsedTextToUse).substring(0, 200) + '...');
     } else {
       console.log('[Tailor] Using parsedText from uploaded file:', parsedTextToUse);
     }
     
-
     if (!parsedTextToUse || !jobDescription.trim()) {
       alert('Please upload a resume and enter a job description.')
       return
@@ -392,29 +528,33 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
     if (onTailorStart) onTailorStart('')
     setIsGenerating(true)
     try {
-
       // Ensure parsedTextToUse is always a string when sending to the API
       const parsedTextForAPI = typeof parsedTextToUse === 'object' 
         ? JSON.stringify(parsedTextToUse) 
         : parsedTextToUse;
         
-      console.log('[Tailor] Sending GENERATE_RESUME request', { parsedText: parsedTextForAPI, jobDescription });
+      console.log('[Tailor] Sending GENERATE_RESUME request');
+      console.log('[Tailor] parsedTextForAPI type:', typeof parsedTextForAPI);
+      console.log('[Tailor] parsedTextForAPI preview:', parsedTextForAPI.substring(0, 200) + '...');
+      console.log('[Tailor] jobDescription preview:', jobDescription.substring(0, 100) + '...');
+      
       chrome.runtime.sendMessage(
         { action: 'GENERATE_RESUME', parsedText: parsedTextForAPI, jobDescription },
-
         (response) => {
           console.log('[Tailor] GENERATE_RESUME response:', response);
           if (response?.success && response.data?.resume) {
             const summary = Array.isArray(response.data.resume.summary) && response.data.resume.summary.length > 0
               ? response.data.resume.summary[0]
               : '';
-
-            console.log('[Tailor] Sending SAVE_RESUME request', { parsedText: parsedTextForAPI, text: response.data.resume, jobDescription, summary });
+            console.log('[Tailor] Sending SAVE_RESUME request');
+            console.log('[Tailor] parsedTextForAPI type:', typeof parsedTextForAPI);
+            console.log('[Tailor] resume data type:', typeof response.data.resume);
+            console.log('[Tailor] summary:', summary);
+            
             chrome.runtime.sendMessage(
               {
                 action: 'SAVE_RESUME',
                 parsedText: parsedTextForAPI,
-
                 text: response.data.resume,
                 jobDescription,
                 summary,
@@ -483,7 +623,17 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
                     ×
                   </button>
                 </div>
-              ) : null }
+              ) : (
+                <button
+                  type="button"
+                  className="ml-2 flex items-center gap-1 px-3 py-1.5 border border-[#4747E1] bg-white text-[#4747E1] text-xs font-semibold rounded-lg shadow-sm hover:bg-[#f5f5ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleTakeScreenshot}
+                  disabled={isOcrLoading || isCapturingScreenshot}
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Screenshot</span>
+                </button>
+              )}
             </label>
             <textarea
               value={jobDescription}
