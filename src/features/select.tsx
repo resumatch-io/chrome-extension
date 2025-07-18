@@ -5,13 +5,14 @@ import { Star, Edit2, Download, Trash2, FileText, Copy } from 'lucide-react';
 import { useUser } from '@clerk/chrome-extension';
 
 interface SelectResumePageProps {
+
   onResumeSelect?: (resumeName: string, resumeText: string) => void;
+
 }
 
 const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) => {
   const { user } = useUser();
   const [search, setSearch] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('All');
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [collections, setCollections] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,8 +54,10 @@ const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) =
     if (selectedResumeId && onResumeSelect) {
       const selectedResume = collections?.find(item => item.id === selectedResumeId);
       const resumeName = selectedResume ? selectedResume.name : 'Unknown Resume';
+
       const resumeText = selectedResume ? selectedResume.text : '';
       onResumeSelect(resumeName, resumeText);
+
     }
   };
 
@@ -95,24 +98,11 @@ const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) =
           <button className="bg-black text-white px-3 py-2 rounded-md text-xs">Search</button>
         </div>
 
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          {['All', 'Favorite', 'Cover Letters', 'Resumes'].map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setSelectedFilter(filter)}
-              className={`px-2 py-1 rounded-full text-xs  ${
-                selectedFilter === filter
-                  ? 'bg-[#4747E1] text-white'
-                  : 'bg-gray-100 text-gray-700'
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
+        
 
         {isPaginationNeeded && (
           <p className="text-[10px] text-gray-500 mb-3">
+
             {collections ? `${collections.length} results based on your ` : ''}
             <span className="text-blue-600 underline cursor-pointer">profile</span> and activity
           </p>

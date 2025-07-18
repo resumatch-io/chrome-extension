@@ -27,7 +27,7 @@ const CollectionsIcon = () => (
 import TailorResumePage from "./tailor";
 import SelectResumePage from "./select";
 import ResumePage from "./resume";
-import Screenshot from "./screenshot";
+// import Screenshot from "./screenshot";
 import Collections from "../pages/collections";
 
 interface SidebarProps {
@@ -52,6 +52,9 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
   const [shareableLink, setShareableLink] = useState<string | null>(null);
   const { user } = useUser();
   const { signOut } = useClerk();
+
+  // Add state for selectedResumeParsedText
+  const [selectedResumeParsedText, setSelectedResumeParsedText] = useState<string | null>(null);
 
   useEffect(() => {
     if (forceVisible) {
@@ -90,13 +93,14 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
       action: "tailorResume",
       visibleTo: "all"
     },
-    {
-      title: "Upload JD screenshot",
-      description: "Upload a screenshot of the job description to tailor your resume.",
-      icon: <img src={Upload} alt="Upload Icon" className="w-10 h-10" />,
-      action: "uploadScreenshot",
-      visibleTo: "signedIn"
-    },
+    // Comment out screenshot-related nav item
+    // {
+    //   title: "Upload JD screenshot",
+    //   description: "Upload a screenshot of the job description to tailor your resume.",
+    //   icon: <img src={Upload} alt="Upload Icon" className="w-10 h-10" />,
+    //   action: "uploadScreenshot",
+    //   visibleTo: "signedIn"
+    // },
     {
       title: "Collections",
       description: "View your collections of tailored resumes.",
@@ -119,12 +123,15 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
       setCurrentPage("tailor");
     } else if (action === "selectResume") {
       setCurrentPage("select");
-    } else if (action === "uploadScreenshot") {
-      setCurrentPage("screenshot");
     } else if (action === "collections") {
       setCurrentPage("collections");
     }
+    // Comment out screenshot page logic
+    // else if (action === "uploadScreenshot") {
+    //   setCurrentPage("screenshot");
+    // }
   };
+
 
   const handleResumeSelection = (resumeName: string, resumeText: string) => {
     setSelectedResume(resumeName);
@@ -181,10 +188,6 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
     setIsVisible(false);
     if (onClose) onClose();
   };
-
-  if (currentPage === "screenshot") {
-    console.log("[Sidebar] Passing initialScreenshot to Screenshot:", capturedScreenshot);
-  }
 
   // Apply consistent styles to navigation items
   const navItemStyle = "flex items-center space-x-3 px-5 py-3 bg-white text-blue-800 border border-blue-200 rounded-lg hover:bg-blue-50 transition duration-200 ease-in-out text-sm font-medium shadow-sm hover:shadow-md";
@@ -268,7 +271,7 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
               <>
                 {renderPageHeader("main")}
                 <div className="flex-1 min-h-0">
-                  <Screenshot
+                  {/* <Screenshot
                     onScreenshotCaptured={handleScreenshotCaptured}
                     initialScreenshot={capturedScreenshot}
                     onSidebarVisibilityChange={(visible, data) => {
@@ -278,7 +281,7 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
                       }
                       if (onClose && !visible) onClose();
                     }}
-                  />
+                  /> */}
                 </div>
               </>
             ) : currentPage === "collections" ? (
