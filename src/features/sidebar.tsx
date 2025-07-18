@@ -44,6 +44,7 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
   const [isVisible, setIsVisible] = useState(forceVisible);
   const [currentPage, setCurrentPage] = useState("main");
   const [selectedResume, setSelectedResume] = useState<string | null>(null);
+  const [selectedResumeParsedText, setSelectedResumeParsedText] = useState<string | null>(null);
   const [showLoading, setShowLoading] = useState(false);
   const [showResume, setShowResume] = useState(false);
   const [jobDescription, setJobDescription] = useState(initialJobDescription || '');
@@ -131,10 +132,10 @@ export const Sidebar = ({ forceVisible = false, initialPage, capturedScreenshot:
     // }
   };
 
-  // Update handleResumeSelection to accept both name and parsedText
-  const handleResumeSelection = (resumeName: string, parsedText?: string) => {
+
+  const handleResumeSelection = (resumeName: string, resumeText: string) => {
     setSelectedResume(resumeName);
-    setSelectedResumeParsedText(parsedText || null);
+    setSelectedResumeParsedText(resumeText);
     setCurrentPage("tailor");
   };
 

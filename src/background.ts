@@ -247,5 +247,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })
     return true
   }
+
+  if (message.action === "OCR_IMAGE" && message.imageData) {
+    // imageData is a base64 data URL
+    (async () => {
+      try {
+        // Convert base64 to Blob
+        const res = await fetch(message.imageData);
+        const blob = await res.blob();
+        const formData = new FormData();
+        formData.append('file', blob, 'screenshot.png');
+
+        const ocrRes = await fetch("http://127.0.0.1:8000/ocr", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await ocrRes.json();
+        sendResponse({ success: true, ...data });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message || String(err) });
+      }
+    })();
+    return true; // async
+  }
 })
 

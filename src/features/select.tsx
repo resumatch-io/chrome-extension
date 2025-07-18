@@ -5,7 +5,9 @@ import { Star, Edit2, Download, Trash2, FileText, Copy } from 'lucide-react';
 import { useUser } from '@clerk/chrome-extension';
 
 interface SelectResumePageProps {
-  onResumeSelect?: (resumeName: string, parsedText?: string) => void;
+
+  onResumeSelect?: (resumeName: string, resumeText: string) => void;
+
 }
 
 const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) => {
@@ -52,8 +54,10 @@ const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) =
     if (selectedResumeId && onResumeSelect) {
       const selectedResume = collections?.find(item => item.id === selectedResumeId);
       const resumeName = selectedResume ? selectedResume.name : 'Unknown Resume';
-      const parsedText = selectedResume ? selectedResume.text : undefined;
-      onResumeSelect(resumeName, parsedText);
+
+      const resumeText = selectedResume ? selectedResume.text : '';
+      onResumeSelect(resumeName, resumeText);
+
     }
   };
 
@@ -98,7 +102,7 @@ const SelectResumePage: React.FC<SelectResumePageProps> = ({ onResumeSelect }) =
 
         {isPaginationNeeded && (
           <p className="text-[10px] text-gray-500 mb-3">
-            {/* You can update this count based on collections.length if needed */}
+
             {collections ? `${collections.length} results based on your ` : ''}
             <span className="text-blue-600 underline cursor-pointer">profile</span> and activity
           </p>

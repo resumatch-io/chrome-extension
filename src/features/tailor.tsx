@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Upload, CheckCircle, Loader2 } from 'lucide-react'
 import { Camera } from 'lucide-react'
 import { SignedIn, SignedOut } from "@clerk/chrome-extension"
-import Tesseract from 'tesseract.js';
+// Remove Tesseract import
+// import Tesseract from 'tesseract.js';
 
 // Define ParseResult type locally
 interface ParseResult {
@@ -14,6 +15,7 @@ interface ParseResult {
 interface TailorResumePageProps {
   onSelectFromCollections?: () => void
   selectedResume?: string | null
+
   selectedResumeParsedText?: string | null
   onTailorStart?: (shareableLink: string) => void
   onResumeRemove?: () => void
@@ -65,6 +67,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
   const [ocrWarning, setOcrWarning] = useState<string | null>(null)
   const [lastOcrImage, setLastOcrImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [sidebarHidden, setSidebarHidden] = useState(false);
 
   // Keep local state in sync with parent prop
   useEffect(() => {
@@ -171,44 +174,41 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
     });
   };
 
+  // Replace processOcrImage with API call
   const processOcrImage = async (imageData: string) => {
     setIsOcrLoading(true);
     setOcrError(null);
     setOcrWarning(null);
-    
+
     try {
-      console.log('[Tailor] OCR started');
-      const ocrResult = await Tesseract.recognize(imageData, 'eng', {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            console.log(`[Tailor] OCR Progress: ${Math.round(m.progress * 100)}%`);
+      return await new Promise((resolve) => {
+        chrome.runtime.sendMessage(
+          { action: "OCR_IMAGE", imageData },
+          (data) => {
+            if (!data || !data.success) {
+              setOcrError(data?.error || "OCR failed. Please try again.");
+              resolve({ success: false, error: data?.error || "OCR failed" });
+              setIsOcrLoading(false);
+              return;
+            }
+            let text = data.text || "";
+            if (text.length < 20) {
+              setOcrWarning("Extracted text looks incomplete. Try recapturing or retrying.");
+            } else {
+              setOcrWarning(null);
+            }
+            setJobDescription(text);
+            setParsedText(text); // <-- add this line
+            if (onJobDescriptionChange) onJobDescriptionChange(text);
+            setIsOcrLoading(false);
+            resolve({ success: true, text });
           }
-        }
+        );
       });
-
-      let text = cleanOcrText(ocrResult.data.text || '');
-      console.log('[Tailor] OCR finished:', text);
-
-      if (text.length < 20) {
-        setOcrWarning('Extracted text looks incomplete. Try recapturing or retrying.');
-        console.warn('[Tailor] OCR warning: text too short');
-      } else {
-        setOcrWarning(null);
-      }
-
-      // Update both local state and parent component
-      setJobDescription(text);
-      if (onJobDescriptionChange) {
-        onJobDescriptionChange(text);
-      }
-      
-      return { success: true, text };
     } catch (err) {
-      console.error('[Tailor] OCR failed:', err);
-      setOcrError('OCR failed. Please try again.');
-      return { success: false, error: err instanceof Error ? err.message : 'OCR failed' };
-    } finally {
+      setOcrError("OCR failed. Please try again.");
       setIsOcrLoading(false);
+      return { success: false, error: err instanceof Error ? err.message : "OCR failed" };
     }
   };
 
@@ -217,7 +217,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
     console.log('[Tailor] Retrying OCR with last captured image');
     setScreenshotPreview(lastOcrImage);
     const result = await processOcrImage(lastOcrImage);
-    if (result?.success) {
+    if (result && typeof result === 'object' && 'success' in result && result.success) {
       console.log('[Tailor] OCR retry successful');
     }
   };
@@ -357,19 +357,34 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
     return (selectedResume || uploadedFile) && jobDescription.trim().length > 0
   }
 
+  // In handleTailorResume, use selectedResumeParsedText if present
   const handleTailorResume = async () => {
     // Use parsedText from collection if selected, else from upload
     let parsedTextToUse = selectedResumeParsedText || parsedText;
-    // If parsedTextToUse is an object, stringify it
-    if (parsedTextToUse && typeof parsedTextToUse !== 'string') {
-      parsedTextToUse = JSON.stringify(parsedTextToUse);
+
+    
+    // If we have selectedResumeParsedText, it's a stringified JSON from the API
+    // We need to parse it to an object for the GENERATE_RESUME request
+    if (selectedResumeParsedText) {
+      try {
+        // Parse the stringified JSON to an object
+        parsedTextToUse = JSON.parse(selectedResumeParsedText);
+        console.log('[Tailor] Parsed collection resume data to object:', parsedTextToUse);
+      } catch (error) {
+        console.error('[Tailor] Error parsing selectedResumeParsedText:', error);
+        // If parsing fails, use it as plain text
+        parsedTextToUse = selectedResumeParsedText;
+      }
     }
+    
     console.log('[Tailor] handleTailorResume called');
     if (selectedResumeParsedText) {
-      console.log('[Tailor] Using parsedText from collection:', parsedTextToUse);
+      console.log('[Tailor] Using parsedText from collection (processed):', typeof parsedTextToUse, parsedTextToUse);
     } else {
       console.log('[Tailor] Using parsedText from uploaded file:', parsedTextToUse);
     }
+    
+
     if (!parsedTextToUse || !jobDescription.trim()) {
       alert('Please upload a resume and enter a job description.')
       return
@@ -377,20 +392,29 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
     if (onTailorStart) onTailorStart('')
     setIsGenerating(true)
     try {
-      console.log('[Tailor] Sending GENERATE_RESUME request', { parsedText: parsedTextToUse, jobDescription });
+
+      // Ensure parsedTextToUse is always a string when sending to the API
+      const parsedTextForAPI = typeof parsedTextToUse === 'object' 
+        ? JSON.stringify(parsedTextToUse) 
+        : parsedTextToUse;
+        
+      console.log('[Tailor] Sending GENERATE_RESUME request', { parsedText: parsedTextForAPI, jobDescription });
       chrome.runtime.sendMessage(
-        { action: 'GENERATE_RESUME', parsedText: parsedTextToUse, jobDescription },
+        { action: 'GENERATE_RESUME', parsedText: parsedTextForAPI, jobDescription },
+
         (response) => {
           console.log('[Tailor] GENERATE_RESUME response:', response);
           if (response?.success && response.data?.resume) {
             const summary = Array.isArray(response.data.resume.summary) && response.data.resume.summary.length > 0
               ? response.data.resume.summary[0]
               : '';
-            console.log('[Tailor] Sending SAVE_RESUME request', { parsedText: parsedTextToUse, text: response.data.resume, jobDescription, summary });
+
+            console.log('[Tailor] Sending SAVE_RESUME request', { parsedText: parsedTextForAPI, text: response.data.resume, jobDescription, summary });
             chrome.runtime.sendMessage(
               {
                 action: 'SAVE_RESUME',
-                parsedText: parsedTextToUse,
+                parsedText: parsedTextForAPI,
+
                 text: response.data.resume,
                 jobDescription,
                 summary,
@@ -429,6 +453,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
           <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
             <label className="block text-xs font-medium text-gray-800 mb-2 flex items-center justify-between">
               <span>Job Description <span className="text-red-500">*</span></span>
+              {/*
               {isCapturingScreenshot ? (
                 <div className="ml-2 flex items-center gap-2 px-3 py-1.5 border border-[#4747E1] bg-white text-[#4747E1] text-xs font-semibold rounded-lg">
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -439,7 +464,8 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Extracting text...</span>
                 </div>
-              ) : screenshotPreview ? (
+              ) :*/}
+              {screenshotPreview ? (
                 <div className="ml-2 flex items-center gap-2">
                   <img
                     src={screenshotPreview}
@@ -481,6 +507,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
               placeholder={isCapturingScreenshot ? "Select an area on the screen..." : "Enter job description here..."}
               disabled={isOcrLoading || isCapturingScreenshot}
             />
+            {/*
             {isCapturingScreenshot && (
               <div className="flex items-center gap-2 mt-2 text-xs text-[#4747E1] bg-blue-50 border border-blue-200 rounded p-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -517,6 +544,7 @@ const TailorResumePage: React.FC<TailorResumePageProps> = ({
                 </button>
               </div>
             )}
+            */}
           </div>
         </div>
 
